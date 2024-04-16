@@ -14,7 +14,7 @@ PImage canvas;
 SecondApplet secondApplet;  
 
 private int   contourSize = 5;
-private int   laserThreshold = 250;
+private int   laserThreshold = 240;
 color[] colors = {
           color(255, 0, 0),     // Red
           color(255, 165, 0),   // Orange
@@ -25,6 +25,12 @@ color[] colors = {
           color(128, 0, 128)    // Purple
         };
 int colorIndex = 0;
+String[] brushShapes = {
+              "square",
+              "circle",
+              "triangle"
+            };
+int brushShapeIndex = 0;
 int brushSize = 3;
 
 
@@ -80,7 +86,7 @@ void draw() {
         // PVector is each point, with x and y
         for (PVector point : contour.getPolygonApproximation().getPoints()) {
           // Paint to the window
-          paint((int)point.x, (int)point.y, brushSize, brushSize);
+          paint((int)point.x, (int)point.y, brushSize, brushSize, brushShapes[brushShapeIndex]);
         }
       }
     }
@@ -98,27 +104,69 @@ void changeBrushSize() {
   }
 }
 
-void switchPaintColor() {
-  int ind = colorIndex;
-  if (ind == colors.length) {
-    colorIndex = 0;
+void switchBrushShape() {
+  int ind = brushShapeIndex;
+  if (ind == brushShapes.length - 1) {
+    brushShapeIndex = 0;
+  } else{
+    brushShapeIndex++;
   }
-  colorIndex++;
-  log("Color ind=" + colorIndex);
 }
 
-void paint(int x, int y, int w, int h) {
-  // determine the size of the pixel to paint
-  int start_x = x - (w / 2);
-  int start_y = y - (h / 2);
-  int end_x = start_x + w;
-  int end_y = start_y + h;
-  for (int i = start_x; i <= end_x; i++){
-    for (int j = start_y; j <= end_y; j++){
-      canvas.set(i, j, colors[colorIndex]);
-    }
+void switchPaintColor() {
+  int ind = colorIndex;
+  if (ind == colors.length - 1) {
+    colorIndex = 0;
+  } else {
+    colorIndex++;
   }
 }
+
+void paint(int x, int y, int w, int h, String shape) {
+  switch (shape) {
+    case "square":
+      // Draw a square
+      int start_x = x - (w / 2);
+      int start_y = y - (h / 2);
+      int end_x = start_x + w;
+      int end_y = start_y + h;
+      for (int i = start_x; i < end_x; i++) {
+        for (int j = start_y; j < end_y; j++) {
+          canvas.set(i, j, colors[colorIndex]);
+        }
+      }
+      break;
+    case "circle":
+      // Draw a circle
+      for (int i = x - w; i <= x + w; i++) {
+        for (int j = y - h; j <= y + h; j++) {
+          if (dist(i, j, x, y) <= w / 2) { // Using the radius as half the width for simplicity
+            canvas.set(i, j, colors[colorIndex]);
+          }
+        }
+      }
+      break;
+    case "triangle":
+      // Draw a triangle
+      int peak_y = y - h / 2;
+      int base_left_x = x - w / 2;
+      int base_right_x = x + w / 2;
+      int base_y = y + h / 2;
+      for (int i = base_left_x; i <= base_right_x; i++) {
+        for (int j = peak_y; j <= base_y; j++) {
+          if ((j - peak_y) <= ((base_y - peak_y) * (i - base_left_x)) / (base_right_x - base_left_x) && 
+              (j - peak_y) <= ((base_y - peak_y) * (base_right_x - i)) / (base_right_x - base_left_x)) {
+            canvas.set(i, j, colors[colorIndex]);
+          }
+        }
+      }
+      break;
+    default:
+      // If shape is not recognized, do nothing or handle error
+      break;
+  }
+}
+
 
 // Resets the canvas to a blank state
 void resetCanvas() {
@@ -152,6 +200,11 @@ void keyPressed() {
       save("canvas_image.jpg");
       println("Canvas saved as 'canvas_image.jpg'");
   }
+  
+  if (key == 'd' || key == 'D') {
+     switchBrushShape();
+  }
+  
 }
 
 // Second window class for raw video output
